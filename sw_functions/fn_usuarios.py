@@ -1,53 +1,48 @@
+from datos.diccionarios import gastos
 from sw_functions.constantes import *
 
 def add_dni(usuarios,letras_dni) ->str:
     print("Enter your DNI to register.")
 
     while True:
-        dni = input("Enter a DNI: ").strip().upper()
-
-        if validate_dni(dni, usuarios,letras_dni):
-            print("Valid DNI.")
+        try:
+            dni = input("Enter a DNI: ").strip()
+            validate_dni(dni, usuarios,letras_dni)
             return dni
+        except ValueError as e:
+            print(e)
+        except TypeError as e:
+            print(e)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
-def validate_dni(dni, usuarios, letras_dni):
+def validate_dni(dni, usuarios, letras_dni) -> bool:
 
     if not isinstance(dni,str):
-        print("DNI must be a string.")
-        return False
+        raise TypeError("DNI must be a string.")
 
     if len(dni) != 9:
-        print("Incorrect length.")
-        input(oEnterToContinue)
-        return False
+        raise ValueError("DNI must have 9 digits.")
 
     dni = dni.upper()
     dni_sin_letra = dni[:8]
 
     if not dni_sin_letra.isdigit():
-        print("DNI must have all numbers (except the last character)")
-        input(oEnterToContinue)
-        return False
+        raise ValueError("DNI must have all numbers (except the last character)")
 
     if dni[-1].isdigit():
-        print("DNI must have all numbers (except the last character)")
-        input(oEnterToContinue)
-        return False
+        raise ValueError("Last character mus be a letter.")
 
     if dni in usuarios:
-        print("DNI already exists.")
-        input(oEnterToContinue)
-        return False
+        raise ValueError("DNI already exists.")
 
     dni_sin_letra = int(dni_sin_letra)
     letra_necesaria = dni_sin_letra % 23
     letra_correcta = letras_dni[letra_necesaria]
     if dni[-1] != letra_correcta.upper():
-        print("Wrong letter. You put", dni[-1], "and the correct letter for this DNI is", letra_correcta)
-        input(oEnterToContinue)
-        return False
-    else:
-        return dni
+        raise ValueError(f"Wrong letter. Correct letter is {letra_correcta} instead of {dni[-1]}.")
+
+    return True
 
 
 def add_password() -> str:
@@ -63,7 +58,6 @@ def add_password() -> str:
             print(e)
         except Exception as e:
             print(f"Unexpected error: {e}")
-
 
 
 def validate_password(password: str)-> bool:
@@ -103,7 +97,7 @@ def validate_exists_usr_pass(usuarios:dict, password:str, dni:str)->bool:
 
     return True
 
-def login_retry() -> bool:
+def ask_retry() -> bool:
     retry = input("Do you want to try again? (y/n): ").strip().lower()
     return retry == "y"
 
@@ -121,13 +115,52 @@ def login_user(usuarios: dict, width=100) -> str|None:
 
         except ValueError as e:
             print(e)
-            if not login_retry():
+            if not ask_retry():
                 return None
         except TypeError as e:
             print(e)
-            if not login_retry():
+            if not ask_retry():
                 return None
         except Exception as e:
             print(f"Unexpected error: {e}")
             return None
+
+def add_name_user()->str:
+    while True:
+        try:
+            name = input("Enter a name of user: ").strip()
+            validate_name(name)
+            return name
+        except ValueError as e:
+            print(e)
+        except TypeError as e:
+            print(e)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+def validate_name(name:str)->bool:
+    '''
+    El nombre puede contener espacios, pero no debe ser vacío.
+    :param name:
+    :return:
+    '''
+    if not isinstance(name, str):
+        raise TypeError("Name must be a string.")
+    if "" == name:
+        raise ValueError("Name cannot be empty.")
+    return True
+
+
+def create_user(usuarios: dict) -> dict|None:
+    try:
+        new_dni = add_dni(usuarios, letras_dni)
+        new_name = add_name_user()
+        new_pass = add_password()
+        return {"nombre": new_name, "username": new_dni, "password": new_pass,"gastos": gastos}
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
+
+
 
