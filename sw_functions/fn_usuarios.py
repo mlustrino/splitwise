@@ -1,4 +1,5 @@
-from sw_functions.constantes import *
+from FUNCTIONS_SPLIT.sw_functions.constantes import *
+from FUNCTIONS_SPLIT.sw_functions.funciones_genericas import *
 
 def add_dni(usuarios,letras_dni) ->str:
     print("Enter your DNI to register.")
@@ -131,3 +132,154 @@ def login_user(usuarios: dict, width=100) -> str|None:
             print(f"Unexpected error: {e}")
             return None
 
+
+# VER GASTOS
+def mostrar_fila_gasto(ids, gasto, tipo_division, categorias, estado):
+    division_id = gasto["division"]
+    nombre_division = tipo_division[division_id]
+    cat_id = gasto["categoria"][0]
+    nombre_categoria = categorias[cat_id]
+    estado_id = gasto["estado"]
+    nombre_estado = estado[estado_id]
+
+    datos = "{:10}{:30}{:>5}{:>15}{:>15}{:>15}{:>15}".format(str(ids), gasto["descripcion"], gasto["total"],
+                                                             gasto["pagador"], nombre_division, nombre_categoria,
+                                                             nombre_estado)
+
+    if len(gasto["participantes"]) > len(gasto["lista_pendientes"]):
+        longitud = len(gasto["participantes"])
+    else:
+        longitud = len(gasto["lista_pendientes"])
+
+    for i in range(longitud):
+        if i == 0:
+            if len(gasto["participantes"]) > i:
+                datos = datos + "{:>20}".format(gasto["participantes"][i])
+            if len(gasto["lista_pendientes"]) > i:
+                datos = datos + "{:>25}".format(gasto["lista_pendientes"][i])
+        else:
+            if len(gasto["participantes"]) > i:
+                datos = datos + "\n{:>125}".format(gasto["participantes"][i])
+                if len(gasto["lista_pendientes"]) > i:
+                    datos = datos + "{:>25}".format(gasto["lista_pendientes"][i])
+            else:
+                if len(gasto["lista_pendientes"]) > i:
+                    datos = datos + "\n{:>150}".format(gasto["lista_pendientes"][i])
+    datos = datos + "\n" + "-" * 150
+    print(datos)
+
+def es_gasto_visible(gasto, user_logged_id):
+    if gasto["pagador"] == user_logged_id:
+        return True
+    if user_logged_id in gasto["participantes"]:
+        return True
+    if user_logged_id in gasto["lista_pendientes"]:
+        return True
+    return False
+
+
+def imprimir_cabecera_gastos():
+    tabla_ver_gastos = "{:10}{:30}{:>5}{:>15}{:>15}{:>15}{:>15}{:>20}{:>25}".format("ID", "Concepto", "Total",
+                                                                                    "Pagador", "Division", "Categoria",
+                                                                                    "Estado", "Participantes",
+                                                                                    "Lista Pendientes")
+    print(espacio)
+    print(linea_asteriscos_150 + "\n" + tabla_ver_gastos + "\n" + linea_asteriscos_150)
+
+
+def listar_todos_los_gastos(user_logged_gastos, user_logged_id, tipo_division, categorias, estado):
+    imprimir_cabecera_gastos()
+    for ids in user_logged_gastos:
+        gasto = user_logged_gastos[ids]
+        if es_gasto_visible(gasto, user_logged_id):
+            mostrar_fila_gasto(ids, gasto, tipo_division, categorias, estado)
+    input(oEnterToContinue)
+
+
+def listar_gastos_ordenados(user_logged_gastos, user_logged_id, tipo_division, categorias, estado):
+    lista_aux = []
+    for id_gasto in user_logged_gastos:
+        lista_aux.append([user_logged_gastos[id_gasto]["total"], id_gasto])
+    lista_ordenada_datos = bubblesort(lista_aux)
+    lista_ids = []
+    for item in lista_ordenada_datos:
+        lista_ids.append(item[1])
+    imprimir_cabecera_gastos()
+    for ids in lista_ids:
+        gasto = user_logged_gastos[ids]
+        if es_gasto_visible(gasto, user_logged_id):
+            mostrar_fila_gasto(ids, gasto, tipo_division, categorias, estado)
+    input(oEnterToContinue)
+
+
+def listar_gastos_por_estado(user_logged_gastos, user_logged_id, estado_buscado, tipo_division, categorias,
+                             estado_labels):
+    imprimir_cabecera_gastos()
+    encontrados = False
+    for ids in user_logged_gastos:
+        gasto = user_logged_gastos[ids]
+        if es_gasto_visible(gasto, user_logged_id):
+            if gasto["estado"] == estado_buscado:
+                encontrados = True
+                mostrar_fila_gasto(ids, gasto, tipo_division, categorias, estado_labels)
+
+    if not encontrados:
+        if estado_buscado == 0:
+            print("No hay gastos pendientes.".center(150))
+        else:
+            print("No hay gastos completados.".center(150))
+    input(oEnterToContinue)
+
+
+def listar_gastos_por_categoria(user_logged_gastos, user_logged_id, categorias, tipo_division, estado_labels):
+    print(espacio)
+    print(linea_asteriscos + "\n" + "SELECCIONAR CATEGORÍA".center(100) + "\n" + linea_asteriscos)
+    for cat_id in categorias:
+        print(str(cat_id) + ") " + categorias[cat_id])
+    print()
+    cat_input = input("Elige una categoria -> ")
+    if not cat_input.isdigit():
+        print(oOnlyNumbers)
+        input(oEnterToContinue)
+    else:
+        cat_input = int(cat_input)
+        if cat_input < 1 or cat_input > len(categorias):
+            print(oOutRange)
+            input(oEnterToContinue)
+        else:
+            imprimir_cabecera_gastos()
+            hay_gastos_categoria = False
+            for ids in user_logged_gastos:
+                gasto = user_logged_gastos[ids]
+                if es_gasto_visible(gasto, user_logged_id):
+                    cat_id = gasto["categoria"][0]
+                    if cat_id == cat_input:
+                        hay_gastos_categoria = True
+                        mostrar_fila_gasto(ids, gasto, tipo_division, categorias, estado_labels)
+            if not hay_gastos_categoria:
+                texto = "No hay gastos en la categoría: " + categorias[cat_input]
+                print(texto.center(150))
+            input(oEnterToContinue)
+
+
+def buscar_gasto_por_id(user_logged_gastos, user_logged_id, tipo_division, categorias, estado_labels):
+    print(espacio)
+    print(linea_asteriscos + "\n" + "BUSCAR GASTO POR ID".center(100) + "\n" + linea_asteriscos)
+    id_input = input("Introduce ID de gasto: ")
+    if not id_input.isdigit():
+        print(oOnlyNumbers)
+        input(oEnterToContinue)
+    else:
+        id_input = int(id_input)
+        if id_input in user_logged_gastos:
+            gasto = user_logged_gastos[id_input]
+            if es_gasto_visible(gasto, user_logged_id):
+                imprimir_cabecera_gastos()
+                mostrar_fila_gasto(id_input, gasto, tipo_division, categorias, estado_labels)
+                input(oEnterToContinue)
+            else:
+                print("No tienes permiso para ver este gasto.".center(100))
+                input(oEnterToContinue)
+        else:
+            print("No existe ningún gasto con esa ID.".center(100))
+            input(oEnterToContinue)
